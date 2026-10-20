@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ATK HUB Lite</title>
+<style>
+  :root {
+    --text: #1b1b1b; --muted: #5f5f5f;
+    --bg: rgba(243, 243, 243, 0.80);
+    --card: rgba(255, 255, 255, 0.70); --card-hover: rgba(255, 255, 255, 0.92);
+    --stroke: rgba(0, 0, 0, 0.08);
+    --accent: #0067c0; --accent-text: #ffffff;
+    --good: #0f7b0f; --bad: #c42b1c; --toast: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: #ffffff; --muted: #c5c5c5;
+      --bg: rgba(32, 32, 32, 0.78);
+      --card: rgba(255, 255, 255, 0.06); --card-hover: rgba(255, 255, 255, 0.11);
+      --stroke: rgba(255, 255, 255, 0.08);
+      --accent: #60cdff; --accent-text: #003a5a;
+      --good: #6ccb5f; --bad: #ff99a4; --toast: #2b2b2b;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; }
+  body { font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; color: var(--text); }
+  button { font: inherit; color: inherit; }
+
+  .app { position: relative; height: 100%; padding: 18px 16px 16px; background: var(--bg);
+         border: 1px solid var(--stroke); display: flex; flex-direction: column; gap: 14px; }
+
+  .head { display: flex; align-items: center; justify-content: space-between; }
+  .name { font-size: 18px; font-weight: 600; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .battery { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .battery .chg { font-size: 11px; color: var(--good); }
+
+  .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 8px; padding: 12px; transition: opacity .15s; }
+  body.busy .card { opacity: .6; pointer-events: none; }
+  .label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; margin-bottom: 10px; }
+
+  .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 8px;
+           border-radius: 8px; border: 1px solid var(--stroke); background: var(--card); cursor: pointer;
+           transition: background .12s, border-color .12s, transform .06s; }
+  .stage:hover { background: var(--card-hover); }
+  .stage:active { transform: scale(.97); }
+  .stage .idx { font-size: 11px; color: var(--muted); }
+  .stage .val { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stage .unit { font-size: 10px; color: var(--muted); }
+  .stage.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
+                  background: color-mix(in srgb, var(--accent) 16%, transparent); }
+
+  .editor { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+  .elabel { width: 52px; font-size: 13px; color: var(--muted); }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  input[type=number] { width: 74px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--stroke);
+                       background: var(--card); color: var(--text); font: inherit; text-align: right; user-select: text; }
+
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 3px; border-radius: 8px;
+         background: color-mix(in srgb, var(--text) 6%, transparent); }
+  .seg-btn { padding: 8px 0; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 13px; }
+  .seg-btn:hover { background: var(--card-hover); }
+  .seg-btn.active { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+
+  .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+           gap: 8px; text-align: center; color: var(--muted); padding: 0 24px; }
+  .empty svg { opacity: .7; }
+  .empty-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .empty-text { font-size: 12px; line-height: 1.4; }
+
+  .toast { position: absolute; left: 50%; bottom: 12px; transform: translate(-50%, 8px); padding: 6px 12px;
+           border-radius: 999px; background: var(--toast); border: 1px solid var(--stroke); font-size: 12px;
+           opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; max-width: 320px; text-align: center; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.bad { color: var(--bad); }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="head">
+      <div>
+        <div class="name" id="name">VXE R1 SE+</div>
+        <div class="sub" id="sub">Looking for your mouse</div>
+      </div>
+      <div class="battery" id="battery"></div>
+    </header>
+
+    <section class="empty" id="empty">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 2v7M6 9h12"/>
+      </svg>
+      <div class="empty-title" id="emptyTitle">Looking for your mouse</div>
+      <div class="empty-text" id="emptyText">Plug in the cable or the 2.4G dongle.</div>
+    </section>
+
+    <main id="main" hidden style="display:flex; flex-direction:column; gap:14px;">
+      <section class="card">
+        <div class="label">DPI STAGES</div>
+        <div class="stages" id="stages"></div>
+        <div class="editor">
+          <span class="elabel" id="editLabel">Stage 1</span>
+          <input type="range" id="dpiRange" min="200" max="10000" step="50">
+          <input type="number" id="dpiNum" min="200" max="10000" step="50">
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="label">POLLING RATE (HZ)</div>
+        <div class="seg" id="poll"></div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
